@@ -1,0 +1,43 @@
+project:
+  type: website
+  execute-dir: project
+  pre-render:
+    - python scripts/sync_assets.py
+
+
+website:
+  description: "A blog built with Quarto"
+  site-url: https://your-website-url.example.com # you must change this appropriately for RSS feeds to work properly
+  title: "ML-Tutorials"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/
+      - icon: twitter
+        href: https://twitter.com
+format:
+  html:
+    theme:
+      - cosmo
+      - brand
+    css: styles.css
+    include-in-header:
+      text: |
+        <script>
+        window.MathJax = {
+          tex: {
+            macros: {
+              sgn: "\\operatorname{sign}",
+              E: "\\mathbb{E}",
+              Var: "\\mathrm{Var}",
+              argmin: "\\operatorname*{arg\\,min}",
+              activation: "\\sigma",
+              loss: "\\mathcal{L}"
+            }
+          }
+        };
+        </script>
+
+
+

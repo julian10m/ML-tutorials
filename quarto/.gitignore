@@ -1,0 +1,11 @@
+# Quarto build output
+_site/
+
+# Freeze cache (optional — see note below)
+_freeze/
+
+# Quarto internal
+.quarto/
+**/*.quarto_ipynb
+
+/.quarto/
