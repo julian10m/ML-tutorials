@@ -1,2 +1,22 @@
-.ipynb_checkpoints
-.venv
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+
+# Logs / temp
+*.log
+
+# Editor (optional but common)
+.vscode/
+.idea/
