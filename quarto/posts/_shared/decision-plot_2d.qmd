@@ -1,0 +1,66 @@
+```{ojs}
+//| echo: false
+{
+  const x1Min = -10, x1Max = 10;
+  const x2Min = -10, x2Max = 10;
+  const step = 0.25;
+
+  const x1s = d3.range(x1Min, x1Max + step, step);
+  const x2s = d3.range(x2Min, x2Max + step, step);
+  
+  const m = -w1 / w2;
+  const ord = -b_2d / w2;
+  
+  const boundaryData = x1s.map(xi => ({ x1: xi, x2: m * xi + ord }));
+
+  const gridData = x1s.flatMap(x1 =>
+    x2s.map(x2 => ({
+      x1,
+      x2,
+      pred: activation(w1 * x1 + w2 * x2 + b_2d) >= 0.5 ? 1 : 0
+    }))
+  );
+
+  const plot = Plot.plot({
+    width: 640,
+    height: 420,
+    x: {label: "x1", domain: [x1Min, x1Max]},
+    y: {label: "x2", domain: [x2Min, x2Max]},
+    color: {
+      domain: [0, 1],
+      range: ["#bae4b3", "#9ecae1"],
+      legend: true,
+      legendOrientation: "right",
+      label: "σ(wx + b)"
+    },
+    marks: [
+      Plot.raster({
+        x1: x1Min,
+        x2: x1Max,
+        y1: x2Min,
+        y2: x2Max,
+        pixelSize: 4,
+        fill: (x1, x2) => activation(w1 * x1 + w2 * x2 + b_2d)
+      }),      
+      Plot.ruleX([0], { stroke: "black", strokeDasharray: "4,4" }),
+      Plot.ruleY([0], { stroke: "black", strokeDasharray: "4,4" }),
+      Plot.line(boundaryData, {
+        x: "x1",
+        y: "x2",
+        stroke: "black",
+        strokeWidth: 3
+      })
+    ]
+  });
+
+  const title = document.createElement("div");
+  title.textContent = `Decision boundary`;
+  title.style.cssText = "text-align: center; font-size: 0.9em; margin-bottom: 2px;";
+
+  const div = document.createElement("div");
+  div.style.cssText = "display: flex; flex-direction: column; align-items: center;";
+  div.appendChild(title);
+  div.appendChild(plot);
+  return div;
+}
+```
