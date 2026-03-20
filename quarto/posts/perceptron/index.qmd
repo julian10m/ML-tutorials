@@ -68,7 +68,7 @@ activation  = z => z >= 0 ? 1 : 0
 wValues     = [...d3.range(-8, 0, 0.5), ...d3.range(0.5, 8.5, 0.5)]
 viewof wIdx = Inputs.range([0, wValues.length - 1], {value: wValues.indexOf(0.5), step: 1, label: "w", format: i => wValues[i]})
 w           = wValues[wIdx]
-viewof b    = Inputs.range([-8, 8], {value: 0, step: 1, label: "b"})
+viewof b    = Inputs.range([-4.5, 4.5], {value: 0, step: 0.5, label: "b"})
 ```
 
 ::: {#fig-decision-boundary}

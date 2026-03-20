@@ -28,7 +28,7 @@
     y: {label: "x2", domain: [x2Min, x2Max]},
     color: {
       domain: [0, 1],
-      range: ["#bae4b3", "#9ecae1"],
+      range: ["#9ecae1", "#bae4b3"],
       legend: true,
       legendOrientation: "right",
       label: "σ(wx + b)"
