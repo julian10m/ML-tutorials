@@ -81,14 +81,9 @@ Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
 
 ```{ojs}
 //| echo: false
-w1Values     = [...d3.range(-10, 0, 0.5), ...d3.range(0.5, 10.5, 0.5)]
-viewof w1Idx = Inputs.range([0, w1Values.length - 1], {value: w1Values.indexOf(0.5), step: 1, label: "w1", format: i => w1Values[i]})
-w1           = w1Values[w1Idx]
 
-w2Values     = [...d3.range(-10, 0, 0.5), ...d3.range(0.5, 10.5, 0.5)]
-viewof w2Idx = Inputs.range([0, w2Values.length - 1], {value: w2Values.indexOf(0.5), step: 1, label: "w2", format: i => w2Values[i]})
-w2           = w2Values[w2Idx]
-
+viewof w1    = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
+viewof w2    = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
 viewof b_2d  = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
 ```
 

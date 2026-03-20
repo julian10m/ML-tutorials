@@ -7,11 +7,32 @@
 
   const x1s = d3.range(x1Min, x1Max + step, step);
   const x2s = d3.range(x2Min, x2Max + step, step);
-  
+
+  const boxWidth = (x1Max - x1Min) * 0.5;
+  const boxHeight = (x2Max - x2Min) * 0.25;
+
   const m = -w1 / w2;
   const ord = -b_2d / w2;
-  
   const boundaryData = x1s.map(xi => ({ x1: xi, x2: m * xi + ord }));
+
+  const invalid = w1 === 0 && w2 === 0;
+
+  let boundaryPlot;
+
+  if (invalid) {
+    boundaryPlot = null;
+  } else if (w1 === 0) {
+    boundaryPlot = Plot.ruleY([-b_2d / w2], { stroke: "black", strokeWidth: 3 });
+  } else if (w2 === 0) {
+    boundaryPlot = Plot.ruleX([-b_2d / w1], { stroke: "black", strokeWidth: 3 });
+  } else {
+    boundaryPlot = Plot.line(boundaryData, {
+      x: "x1",
+      y: "x2",
+      stroke: "black",
+      strokeWidth: 3
+    });
+  }
 
   const gridData = x1s.flatMap(x1 =>
     x2s.map(x2 => ({
@@ -41,16 +62,44 @@
         y2: x2Max,
         pixelSize: 4,
         fill: (x1, x2) => activation(w1 * x1 + w2 * x2 + b_2d)
-      }),      
+      }),
       Plot.ruleX([0], { stroke: "black", strokeDasharray: "4,4" }),
       Plot.ruleY([0], { stroke: "black", strokeDasharray: "4,4" }),
-      Plot.line(boundaryData, {
-        x: "x1",
-        y: "x2",
-        stroke: "black",
-        strokeWidth: 3
-      })
-    ]
+      boundaryPlot,
+      invalid && Plot.rect(
+        [{
+          x1: -boxWidth / 2,
+          x2: boxWidth / 2,
+          y1: -boxHeight / 2,
+          y2: boxHeight / 2
+        }],
+        {
+          x1: "x1",
+          x2: "x2",
+          y1: "y1",
+          y2: "y2",
+          fill: "white",
+          fillOpacity: 0.9,
+          stroke: "black",
+          strokeWidth: 1
+        }
+      ),
+      invalid && Plot.text(
+        [{
+          x1: 0,
+          x2: 0,
+          label: "No decision boundary :)\nThis is because w1 = w2 = 0\n\nTherefore, we choose based on b\nIf b >= 0, choose 1, otherwise 0."
+        }],
+        {
+          x: "x1",
+          y: "x2",
+          text: "label",
+          textAnchor: "middle",
+          fontSize: 14,
+          fill: "black"
+        }
+      )
+    ].filter(Boolean)
   });
 
   const title = document.createElement("div");
