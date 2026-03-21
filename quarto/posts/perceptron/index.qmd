@@ -92,13 +92,13 @@ This can be seen in @fig-decision-region.
 The decision threshold in the transformed $z$-space corresponds to a geometric boundary in the input $x$-space.
 In particular, the boundary lies in
 
-$$z_0 = 0 \Leftrightarrow wx_0 + b = 0 \Leftrightarrow$$
+$$z_0 = 0 \Leftrightarrow w x_0 + b = 0 \Leftrightarrow$$
 
 and this also determines the decision regions
 
 $$\hat{y} =
 \begin{cases}
-1 & \text{if } wx_0 + b \ge 0 \\
+1 & \text{if } w x_0 + b \ge 0 \\
 0 & \text{otherwise}
 \end{cases}
 $$
