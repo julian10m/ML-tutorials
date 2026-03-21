@@ -6,16 +6,33 @@ categories: [classification]
 ---
 
 The perceptron is a classification algorithm, so given an input $x$, we want to produce a label $\hat{y}$.
-In particular, it is a supervised model, meaning that we will a labelled training set, where we know the true value $y$ for each sample.
+In particular, it is a supervised model, meaning that we will have a labelled training set, where we know the true value $y$ for each sample.
 
 In general, we can choose how to represent $y$.
-For binary classification problems, some typical choices include $\{0, 1\}$ and $y\{-1, 1\}$.
-Using one or the toher does not affect the generality of the conclusions.
+For binary classification problems, some typical choices include $\{0, 1\}$ and ${-1, 1\}$.
+Using one or the other does not affect the generality of the conclusions.
 We will alternate between both, selecting the representation that leads to the easiest interpretation in each section.
 
-## Activation function
+## Predicting
 
-Similar to what is done in many other models, with the perceptron we use a linear transformation
+We first need to understand how, given an input $x$, the model predicts a label $\hat{y}$.
+In short, this happens:
+
+1. using a linear transformation
+2. selecting an activation function
+3. determinining a classification criteria
+4. identifying the decision regions based on the criteria
+
+Next we dive into each of these steps.
+
+### Linear transformation
+
+As we get a sample as input, the value of the features $x$ represent the "concrete knowledge" we have about this example.
+
+We want to combine the information we have about $x$ in a meaningful way.
+Ultimately, we hope that this will allow us to classify $x$ correctly.
+
+To synthesise all the knowledge we have about $x$ into a unique measure, similar to what is done in many other models, the perceptron uses a linear transformation
 
 $$z = wx + b$$
 
@@ -24,43 +41,68 @@ where
  * $x$ is the input, and;
  * $w$ and $b$ are the weight and bias of the model, respectively.
 
-The $z$-value is then passed through an activation function
+The union of $w$ and $b$ are the parameters of the model.
+
+Relying on this linear transformation, the input space $x$ gets projected onto a one-dimensional space defined by $z$.
+
+### Activation function
+
+<!-- The activation function determines how the model’s internal score is turned into an output — whether as a probability, a decision, or a non-linear response. -->
+
+With the linear transformation, we condense the knowledge of $x$ into $z$.
+But as this happens, we now need a way of understanding what $z$ is trying to tell us.
+
+To complete that piece of the puzzle, the $z$-value is sent through an activation function $\activation(z)$.
+
+In the case of the perceptron, the $\sgn(z)$ or _step_ function show in @fig-sign is used
 
 $$
 \activation(z) = \sgn(z) =
 \begin{cases}
 1 & \text{if } z \ge 0 \\
-0 & \text{if } z < 0
+0 & \text{otherwise}
 \end{cases}
 $$ {#eq-sign}
 
-![Sign function bla bla](/assets/classification/perceptron/figures/sign.png){#fig-sign width=80%}
+![Activation function $\sgn(z)$.](/assets/classification/perceptron/figures/sign.png){#fig-sign width=50%}
 
-which is referred to as the _step_ function due to the shape of its plot, as show in @fig-sign.
+### Classification criteria
 
-## Classification criteria
+Finally, we need to tell whether we map $x$ to either $\hat{y} = 0$ or $\hat{y} = 1$.
 
-When we get a new $x$, the objective is to assign it to one class or another, i.e. map it to either $\hat{y} = 0$ or $\hat{y} = 1$.
+In the perceptron, the activation function itself produces discrete outputs, so it directly defines the classification rule
 
-In the case of the perceptron, this decision is simple: since the output of $\activation(z)$ is already either $0$ or $1$, then the classification criteria is to simply use its value, i.e.,
-
-$$\hat{y} = \activation(z) =
+$$\hat{y} = \sgn(z) = \activation(z) =
 \begin{cases}
 1 & \text{if } z \ge 0 \\
-0 & \text{if } z < 0
+0 & \text{otherwise}
 \end{cases}
 $$
 
-We can see the decision regions in @fig-decision-region.
+We typically place a decision threshold in some value $z = z_0$.
+This threshold divides the real line into two regions, each corresponding to a predicted class.
 
-![Decision regions](/assets/classification/perceptron/figures/decision_region_zspace.png){#fig-decision-region width=80%}
+In the perceptron, the decision threshold lies in $z_0 = 0$.
+This can be seen in @fig-decision-region.
 
-Note that the decision region lies on the $z$-axis, the shading of the regions in 2D are just to reinforce the idea.
+![The decision threshold lies at $z = 0$ (the shaded regions in 2D are just to reinforce the idea).](/assets/classification/perceptron/figures/decision_region_zspace.png){#fig-decision-region width=65%}
 
-In the $z$-space, it always holds that $z$ is a scalar, i.e., $z \in \mathbb{R}$.
-On the contrary, $x$, and thus $w$, could belong to an $n$-dimensional space, i.e. $x, w \in \mathbb{R}^n$.
+### Decision regions and boundary
 
-Hence, we classify based on the value of $z = wx + b$.
+The decision threshold in the transformed $z$-space corresponds to a geometric boundary in the input $x$-space.
+In particular, the boundary lies in
+
+$$z_0 = 0 \Leftrightarrow wx_0 + b = 0 \Leftrightarrow x_0 = -\frac{b}{w}$$
+
+and this also determines the decision regions
+
+$$\hat{y} =
+\begin{cases}
+1 & \text{if } x \ge -\frac{b}{w} \\
+0 & \text{otherwise}
+\end{cases}
+$$
+
 
 ```{ojs}
 //| echo: false
@@ -79,41 +121,21 @@ Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
 
 :::
 
-:::: {.columns}
-::: {.column width="30%"}
-
-```{ojs}
-//| echo: false
-viewof w1       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
-viewof w2       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
-viewof b_2d     = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
-viewof plotMode = Inputs.radio(["2D", "3D"], {value: "2D", label: "View"})
-```
-
-:::
-::: {.column width="70%"}
-
-::: {#fig-decision-boundary-2d}
-
-{{< include ../_shared/decision-plot_2d.qmd >}}
-
-Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
-
-:::
-
-:::
-::::
-
-Play with @fig-decision-boundary-2d.
-
 ## Training
 
-Recall that this is a supervised algorithm, which means that during training, we get labeled samples, i.e., for all training examples $x$ we get, we know the true label $y$.
+Recall that this is a supervised algorithm.
+This means that during training, we need to have labeled samples.
+Assuming that's the case, for any training example $x$, we know the true label $y$.
 
-Since we get the true labels, we are able to compare the each prediction $\hat{y}$ run by our model with the expected $y$.
-This allows us understand how our model is performing at any moment of the training.
+For each example we run through our classifier, we get a prediction $\hat{y}$.
+Since we get the true labels, we are able to compare $\hat{y}$ against the expected $y$.
+The more times $\hat{y} = y$, the better our model is performing.
 
+The training is the phase in which we refine the predictions $\hat{y}$ that our classifier makes.
+For that to be possible, we need to update the parameters $w$ and $b$
 The hope is that, iterating, we will learn good values for $w$ and $b$, so that our predictions $\hat{y}$ are mostly correct.
+
+
 To refine the values of $w$ and $b$, we need to define a loss function.
 
 ### Loss function
@@ -153,3 +175,33 @@ y' &= a
 $$
 
 great!
+
+Finally, n the $z$-space, it always holds that $z$ is a scalar, i.e., $z \in \mathbb{R}$.
+On the contrary, $x$, and thus $w$, could belong to an $n$-dimensional space, i.e. $x, w \in \mathbb{R}^n$.
+
+:::: {.columns}
+::: {.column width="30%"}
+
+```{ojs}
+//| echo: false
+viewof w1       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
+viewof w2       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
+viewof b_2d     = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
+viewof plotMode = Inputs.radio(["2D", "3D"], {value: "2D", label: "View"})
+```
+
+:::
+::: {.column width="70%"}
+
+::: {#fig-decision-boundary-2d}
+
+{{< include ../_shared/decision-plot_2d.qmd >}}
+
+Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
+
+:::
+
+:::
+::::
+
+Play with @fig-decision-boundary-2d.
