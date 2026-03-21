@@ -3,113 +3,327 @@
 {
   const x1Min = -10, x1Max = 10;
   const x2Min = -10, x2Max = 10;
-  const step = 0.25;
 
-  const x1s = d3.range(x1Min, x1Max + step, step);
-  const x2s = d3.range(x2Min, x2Max + step, step);
+  const step2d = 0.25;
+  const step3d = 0.25;
+
+  const x1s2d = d3.range(x1Min, x1Max + step2d, step2d);
+  const x2s2d = d3.range(x2Min, x2Max + step2d, step2d);
+
+  const x1s3d = d3.range(x1Min, x1Max + step3d, step3d);
+  const x2s3d = d3.range(x2Min, x2Max + step3d, step3d);
 
   const boxWidth = (x1Max - x1Min) * 0.5;
   const boxHeight = (x2Max - x2Min) * 0.25;
 
-  const m = -w1 / w2;
-  const ord = -b_2d / w2;
-  const boundaryData = x1s.map(xi => ({ x1: xi, x2: m * xi + ord }));
-
   const invalid = w1 === 0 && w2 === 0;
 
-  let boundaryPlot;
+  let boundaryPlot = null;
+  let boundary3dFloor = null;
+  let boundary3dSurface = null;
 
-  if (invalid) {
-    boundaryPlot = null;
-  } else if (w1 === 0) {
-    boundaryPlot = Plot.ruleY([-b_2d / w2], { stroke: "black", strokeWidth: 3 });
-  } else if (w2 === 0) {
-    boundaryPlot = Plot.ruleX([-b_2d / w1], { stroke: "black", strokeWidth: 3 });
-  } else {
-    boundaryPlot = Plot.line(boundaryData, {
-      x: "x1",
-      y: "x2",
-      stroke: "black",
-      strokeWidth: 3
+  if (!invalid) {
+    if (w1 === 0) {
+      const yConst = -b_2d / w2;
+
+      boundaryPlot = Plot.ruleY([yConst], {
+        stroke: "black",
+        strokeWidth: 3
+      });
+
+      boundary3dFloor = {
+        type: "scatter3d",
+        mode: "lines",
+        x: [x1Min, x1Max],
+        y: [yConst, yConst],
+        z: [0, 0],
+        line: { color: "black", width: 6 },
+        showlegend: false,
+        hoverinfo: "skip"
+      };
+
+      boundary3dSurface = {
+        type: "scatter3d",
+        mode: "lines",
+        x: [x1Min, x1Max],
+        y: [yConst, yConst],
+        z: [0.5, 0.5],
+        line: { color: "black", width: 4, dash: "dash" },
+        showlegend: false,
+        hoverinfo: "skip"
+      };
+
+    } else if (w2 === 0) {
+      const xConst = -b_2d / w1;
+
+      boundaryPlot = Plot.ruleX([xConst], {
+        stroke: "black",
+        strokeWidth: 3
+      });
+
+      boundary3dFloor = {
+        type: "scatter3d",
+        mode: "lines",
+        x: [xConst, xConst],
+        y: [x2Min, x2Max],
+        z: [0, 0],
+        line: { color: "black", width: 6 },
+        showlegend: false,
+        hoverinfo: "skip"
+      };
+
+      boundary3dSurface = {
+        type: "scatter3d",
+        mode: "lines",
+        x: [xConst, xConst],
+        y: [x2Min, x2Max],
+        z: [0.5, 0.5],
+        line: { color: "black", width: 4, dash: "dash" },
+        showlegend: false,
+        hoverinfo: "skip"
+      };
+
+    } else {
+      const m = -w1 / w2;
+      const ord = -b_2d / w2;
+
+      const boundaryData2d = x1s2d.map(xi => ({ x1: xi, x2: m * xi + ord }));
+
+      boundaryPlot = Plot.line(boundaryData2d, {
+        x: "x1",
+        y: "x2",
+        stroke: "black",
+        strokeWidth: 3
+      });
+
+      const boundaryData3d = x1s3d.map(xi => ({ x1: xi, x2: m * xi + ord }));
+      const inside = boundaryData3d.filter(
+        d => d.x1 >= x1Min && d.x1 <= x1Max && d.x2 >= x2Min && d.x2 <= x2Max
+      );
+
+      if (inside.length > 0) {
+        boundary3dFloor = {
+          type: "scatter3d",
+          mode: "lines",
+          x: inside.map(d => d.x1),
+          y: inside.map(d => d.x2),
+          z: inside.map(() => 0),
+          line: { color: "black", width: 6 },
+          showlegend: false,
+          hoverinfo: "skip"
+        };
+
+        boundary3dSurface = {
+          type: "scatter3d",
+          mode: "lines",
+          x: inside.map(d => d.x1),
+          y: inside.map(d => d.x2),
+          z: inside.map(() => 0.5),
+          line: { color: "black", width: 4, dash: "dash" },
+          showlegend: false,
+          hoverinfo: "skip"
+        };
+      }
+    }
+  }
+
+  if (plotMode === "2D") {
+    const plot2d = Plot.plot({
+      width: 420,
+      height: 420,
+      x: { label: "x1", domain: [x1Min, x1Max] },
+      y: { label: "x2", domain: [x2Min, x2Max] },
+      color: {
+        domain: [0, 1],
+        range: ["#9ecae1", "#bae4b3"]
+      },
+      marks: [
+        Plot.raster({
+          x1: x1Min,
+          x2: x1Max,
+          y1: x2Min,
+          y2: x2Max,
+          pixelSize: 4,
+          fill: (x1, x2) => activation(w1 * x1 + w2 * x2 + b_2d)
+        }),
+        Plot.ruleX([0], { stroke: "black", strokeDasharray: "4,4" }),
+        Plot.ruleY([0], { stroke: "black", strokeDasharray: "4,4" }),
+        boundaryPlot,
+        invalid && Plot.rect(
+          [{
+            x1: -boxWidth / 2,
+            x2: boxWidth / 2,
+            y1: -boxHeight / 2,
+            y2: boxHeight / 2
+          }],
+          {
+            x1: "x1",
+            x2: "x2",
+            y1: "y1",
+            y2: "y2",
+            fill: "white",
+            fillOpacity: 0.9,
+            stroke: "black",
+            strokeWidth: 1
+          }
+        ),
+        invalid && Plot.text(
+          [{
+            x1: 0,
+            x2: 0,
+            label: "No decision boundary :)\nThis is because w1 = w2 = 0\n\nTherefore, we choose based on b\nIf b >= 0, choose 1, otherwise 0."
+          }],
+          {
+            x: "x1",
+            y: "x2",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 14,
+            fill: "black"
+          }
+        )
+      ].filter(Boolean)
+    });
+
+    const wrapper2d = document.createElement("div");
+    wrapper2d.style.cssText = "display:flex; justify-content:center; width:100%;";
+    wrapper2d.appendChild(plot2d);
+    return wrapper2d;
+  }
+
+  // 3D mode
+  const zSurface = x2s3d.map(x2 =>
+    x1s3d.map(x1 => activation(w1 * x1 + w2 * x2 + b_2d))
+  );
+
+  const zPlane = x2s3d.map(() =>
+    x1s3d.map(() => 0)
+  );
+
+  const plot3dDiv = document.createElement("div");
+  plot3dDiv.style.width = "420px";
+  plot3dDiv.style.height = "420px";
+
+  const plotlyScriptId = "plotly-cdn-script";
+  if (!document.getElementById(plotlyScriptId)) {
+    const s = document.createElement("script");
+    s.id = plotlyScriptId;
+    s.src = "https://cdn.plot.ly/plotly-2.35.2.min.js";
+    document.head.appendChild(s);
+    await new Promise(resolve => { s.onload = resolve; });
+  } else if (!window.Plotly) {
+    await new Promise(resolve => {
+      const wait = () => window.Plotly ? resolve() : setTimeout(wait, 30);
+      wait();
     });
   }
 
-  const gridData = x1s.flatMap(x1 =>
-    x2s.map(x2 => ({
-      x1,
-      x2,
-      pred: activation(w1 * x1 + w2 * x2 + b_2d) >= 0.5 ? 1 : 0
-    }))
+  const planeTrace = {
+    type: "surface",
+    x: x1s3d,
+    y: x2s3d,
+    z: zPlane,
+    surfacecolor: zSurface,
+    colorscale: [
+      [0, "#9ecae1"],
+      [1, "#bae4b3"]
+    ],
+    cmin: 0,
+    cmax: 1,
+    opacity: 0.35,
+    showscale: false,
+    hoverinfo: "skip"
+  };
+
+  const surfaceTrace = {
+    type: "surface",
+    x: x1s3d,
+    y: x2s3d,
+    z: zSurface,
+    colorscale: [
+      [0, "#9ecae1"],
+      [1, "#bae4b3"]
+    ],
+    cmin: 0,
+    cmax: 1,
+    opacity: 0.95,
+    showscale: true,
+    colorbar: {
+      title: "σ(wx + b)",
+      len: 0.62,
+      y: 0.58,
+      thickness: 12
+    },
+    hovertemplate: "x1=%{x:.2f}<br>x2=%{y:.2f}<br>σ=%{z:.3f}<extra></extra>"
+  };
+
+  const traces = [
+    planeTrace,
+    surfaceTrace,
+    boundary3dFloor,
+    boundary3dSurface
+  ].filter(Boolean);
+
+  await window.Plotly.newPlot(
+    plot3dDiv,
+    traces,
+    {
+      margin: { l: 0, r: 0, t: 0, b: 0 },
+      title: { text: "" },
+      scene: {
+        domain: { x: [0, 1], y: [0.08, 1] },
+        xaxis: {
+          title: "x1",
+          range: [x1Min, x1Max],
+          showspikes: false
+        },
+        yaxis: {
+          title: "x2",
+          range: [x2Min, x2Max],
+          showspikes: false
+        },
+        zaxis: {
+          title: "σ(wx+b)",
+          range: [0, 1],
+          showspikes: false
+        },
+        aspectmode: "manual",
+        aspectratio: { x: 1, y: 1, z: 0.7 },
+        camera: {
+          eye: { x: 1.1, y: -0.8, z: 0.5 }
+        }
+      }
+    },
+    { displayModeBar: false, responsive: true }
   );
 
-  const plot = Plot.plot({
-    width: 640,
-    height: 420,
-    x: {label: "x1", domain: [x1Min, x1Max]},
-    y: {label: "x2", domain: [x2Min, x2Max]},
-    color: {
-      domain: [0, 1],
-      range: ["#9ecae1", "#bae4b3"],
-      legend: true,
-      legendOrientation: "right",
-      label: "σ(wx + b)"
-    },
-    marks: [
-      Plot.raster({
-        x1: x1Min,
-        x2: x1Max,
-        y1: x2Min,
-        y2: x2Max,
-        pixelSize: 4,
-        fill: (x1, x2) => activation(w1 * x1 + w2 * x2 + b_2d)
-      }),
-      Plot.ruleX([0], { stroke: "black", strokeDasharray: "4,4" }),
-      Plot.ruleY([0], { stroke: "black", strokeDasharray: "4,4" }),
-      boundaryPlot,
-      invalid && Plot.rect(
-        [{
-          x1: -boxWidth / 2,
-          x2: boxWidth / 2,
-          y1: -boxHeight / 2,
-          y2: boxHeight / 2
-        }],
-        {
-          x1: "x1",
-          x2: "x2",
-          y1: "y1",
-          y2: "y2",
-          fill: "white",
-          fillOpacity: 0.9,
-          stroke: "black",
-          strokeWidth: 1
-        }
-      ),
-      invalid && Plot.text(
-        [{
-          x1: 0,
-          x2: 0,
-          label: "No decision boundary :)\nThis is because w1 = w2 = 0\n\nTherefore, we choose based on b\nIf b >= 0, choose 1, otherwise 0."
-        }],
-        {
-          x: "x1",
-          y: "x2",
-          text: "label",
-          textAnchor: "middle",
-          fontSize: 14,
-          fill: "black"
-        }
-      )
-    ].filter(Boolean)
-  });
+  if (invalid) {
+    const note = document.createElement("div");
+    note.textContent = "No decision boundary (w1 = w2 = 0)";
+    note.style.cssText = `
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      background: white;
+      border: 1px solid black;
+      padding: 8px 10px;
+      font-size: 13px;
+      border-radius: 4px;
+      z-index: 10;
+    `;
 
-  const title = document.createElement("div");
-  title.textContent = `Decision boundary`;
-  title.style.cssText = "text-align: center; font-size: 0.9em; margin-bottom: 2px;";
+    const wrapper3d = document.createElement("div");
+    wrapper3d.style.cssText = "position: relative; width: 420px; height: 420px;";
+    plot3dDiv.style.width = "100%";
+    plot3dDiv.style.height = "100%";
+    wrapper3d.appendChild(plot3dDiv);
+    wrapper3d.appendChild(note);
+    return wrapper3d;
+  }
 
-  const div = document.createElement("div");
-  div.style.cssText = "display: flex; flex-direction: column; align-items: center;";
-  div.appendChild(title);
-  div.appendChild(plot);
-  return div;
+  const wrapper3d = document.createElement("div");
+  wrapper3d.style.cssText = "display:flex; justify-content:center; width:100%;";
+  wrapper3d.appendChild(plot3dDiv);
+  return wrapper3d;
 }
 ```

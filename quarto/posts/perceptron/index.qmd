@@ -79,13 +79,19 @@ Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
 
 :::
 
+:::: {.columns}
+::: {.column width="30%"}
+
 ```{ojs}
 //| echo: false
-
-viewof w1    = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
-viewof w2    = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
-viewof b_2d  = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
+viewof w1       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
+viewof w2       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
+viewof b_2d     = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
+viewof plotMode = Inputs.radio(["2D", "3D"], {value: "2D", label: "View"})
 ```
+
+:::
+::: {.column width="70%"}
 
 ::: {#fig-decision-boundary-2d}
 
@@ -94,6 +100,9 @@ viewof b_2d  = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
 Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
 
 :::
+
+:::
+::::
 
 Play with @fig-decision-boundary-2d.
 
