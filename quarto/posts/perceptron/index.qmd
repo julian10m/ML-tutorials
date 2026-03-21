@@ -92,33 +92,27 @@ This can be seen in @fig-decision-region.
 The decision threshold in the transformed $z$-space corresponds to a geometric boundary in the input $x$-space.
 In particular, the boundary lies in
 
-$$z_0 = 0 \Leftrightarrow wx_0 + b = 0 \Leftrightarrow x_0 = -\frac{b}{w}$$
+$$z_0 = 0 \Leftrightarrow wx_0 + b = 0 \Leftrightarrow$$
 
 and this also determines the decision regions
 
 $$\hat{y} =
 \begin{cases}
-1 & \text{if } x \ge -\frac{b}{w} \\
+1 & \text{if } wx_0 + b \ge 0 \\
 0 & \text{otherwise}
 \end{cases}
 $$
 
+Focusing on $x \in \mathbb{R}$ for now, we can find $x_0$ directly as $x_0 = -\frac{b}{w}$.
+The animation in @fig-decision-boundary-1d allows to see how the position of $x_0$ changes depending on the values assigned to $w$ and $b$.
 
 ```{ojs}
 //| echo: false
-activation  = z => z >= 0 ? 1 : 0
-wValues     = [...d3.range(-8, 0, 0.5), ...d3.range(0.5, 8.5, 0.5)]
-viewof wIdx = Inputs.range([0, wValues.length - 1], {value: wValues.indexOf(0.5), step: 1, label: "w", format: i => wValues[i]})
-w           = wValues[wIdx]
-viewof b    = Inputs.range([-4.5, 4.5], {value: 0, step: 0.5, label: "b"})
+activation = z => z >= 0 ? 1 : 0;
 ```
-
-::: {#fig-decision-boundary}
-
+::: {#fig-decision-boundary-1d}
 {{< include ../_shared/decision-plot_1d.qmd >}}
-
-Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
-
+Decision boundary — adjust $w$ and $b$ to explore different configurations.
 :::
 
 ## Training
@@ -180,8 +174,8 @@ Finally, n the $z$-space, it always holds that $z$ is a scalar, i.e., $z \in \ma
 On the contrary, $x$, and thus $w$, could belong to an $n$-dimensional space, i.e. $x, w \in \mathbb{R}^n$.
 
 :::: {.columns}
-::: {.column width="30%"}
 
+::: {.column width="30%"}
 ```{ojs}
 //| echo: false
 viewof w1       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w1"})
@@ -189,19 +183,15 @@ viewof w2       = Inputs.range([-10, 10], {value: 0.5, step: 0.5, label: "w2"})
 viewof b_2d     = Inputs.range([-8, 8], {value: 0, step: 1, label: "b_2d"})
 viewof plotMode = Inputs.radio(["2D", "3D"], {value: "2D", label: "View"})
 ```
-
 :::
+
 ::: {.column width="70%"}
-
 ::: {#fig-decision-boundary-2d}
-
 {{< include ../_shared/decision-plot_2d.qmd >}}
-
 Sigmoid classifier — adjust $w$ and $b$ to explore the decision boundary.
-
+:::
 :::
 
-:::
 ::::
 
 Play with @fig-decision-boundary-2d.

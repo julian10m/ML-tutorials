@@ -1,49 +1,188 @@
 ```{ojs}
 //| echo: false
 {
-  const xMin = -10, xMax = 10;
-  const x0 = -b / w;
-  const x0Clamped = Math.max(xMin, Math.min(x0, xMax));
+  const w = Inputs.range([-8, 8], { value: 0.5, step: 0.5, label: null });
+  const b = Inputs.range([-4.5, 4.5], { value: 0, step: 0.5, label: null });
 
-  const xs = d3.range(xMin, xMax, 0.05);
+  function compactRow(name, input) {
+    input.style.width = "100%";
+    input.style.margin = "0";
 
-  const curveData = xs.map(xi => ({ x: xi, y: activation(w * xi + b) }));
-  const axisData  = xs.map(xi => ({ x: xi, pred: activation(w * xi + b) >= 0.5 ? 1 : 0 }));
+    return html`<div style="
+      display: grid;
+      grid-template-columns: 0.9rem 1fr;
+      align-items: center;
+      column-gap: 0.4rem;
+    ">
+      <span>${name}</span>
+      ${input}
+    </div>`;
+  }
 
-  // class 1 → #bae4b3 (green), class 0 → #9ecae1 (blue)
-  const c1 = "rgba(186, 228, 179, 0.2)";
-  const c0 = "rgba(158, 202, 225, 0.2)";
-  const leftColor  = activation(w * xMin + b) >= 0.5 ? c1 : c0;
-  const rightColor = activation(w * xMax + b) >= 0.5 ? c1 : c0;
+  const controls = html`<div style="
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+  "></div>`;
 
-  const plot = Plot.plot({
-    width: 640,
-    height: 380,
-    x: { label: "x",          domain: [xMin, xMax]   },
-    y: { label: "σ(wx + b)",  domain: [-0.05, 1.05]  },
-    style: { background: "white" },
-    marks: [
-      Plot.rect([{}], { x1: xMin,      x2: x0Clamped, y1: 0, y2: 1, fill: leftColor  }),
-      Plot.rect([{}], { x1: x0Clamped, x2: xMax,      y1: 0, y2: 1, fill: rightColor }),
-      Plot.line(curveData, { x: "x", y: "y", stroke: "black", strokeWidth: 3 }),
-      Plot.ruleX([x0], { stroke: "black", strokeDasharray: "4,4" }),
-      Plot.dot([{ x: x0 }], { x: "x", y: 0.5, fill: "black", r: 5 }),
-      Plot.dot(axisData, {
-        x: "x", y: 0,
-        fill: d => d.pred === 1 ? "#bae4b3" : "#9ecae1",
-        r: 2.5
-      })
-    ]
-  });
+  controls.append(
+    compactRow("w", w),
+    compactRow("b", b)
+  );
 
-  const title = document.createElement("div");
-  title.textContent = `Decision boundary at x₀ = ${x0.toFixed(2)}`;
-  title.style.cssText = "text-align: center; font-size: 0.9em; margin-bottom: 2px;";
+  const plotHost = html`<div></div>`;
 
-  const div = document.createElement("div");
-  div.style.cssText = "display: flex; flex-direction: column; align-items: center;";
-  div.appendChild(title);
-  div.appendChild(plot);
-  return div;
+  function render() {
+    const wv = w.value;
+    const bv = b.value;
+
+    const xMin = -10, xMax = 10;
+    const xs = d3.range(xMin, xMax, 0.05);
+
+    const invalid = wv === 0;
+    const x0 = invalid ? null : -bv / wv;
+    const x0Clamped = invalid ? null : Math.max(xMin, Math.min(x0, xMax));
+
+    const boxWidth = (xMax - xMin) * 0.55;
+
+    const c1 = "rgba(186, 228, 179, 0.2)";
+    const c0 = "rgba(158, 202, 225, 0.2)";
+
+    let curveData, axisData, leftColor, rightColor, boundaryMark, thresholdMark, titleText;
+
+    if (invalid) {
+      const pred = activation(bv);
+
+      curveData = xs.map(xi => ({ x: xi, y: pred }));
+      axisData  = xs.map(xi => ({ x: xi, pred }));
+
+      leftColor = pred === 1 ? c1 : c0;
+      rightColor = leftColor;
+
+      boundaryMark = null;
+      thresholdMark = null;
+      titleText = `No decision boundary`;
+    } else {
+      curveData = xs.map(xi => ({ x: xi, y: activation(wv * xi + bv) }));
+      axisData  = xs.map(xi => ({ x: xi, pred: activation(wv * xi + bv) }));
+
+      leftColor  = activation(wv * xMin + bv) ? c1 : c0;
+      rightColor = activation(wv * xMax + bv) ? c1 : c0;
+
+      boundaryMark = Plot.ruleX([x0Clamped], {
+        stroke: "black",
+        strokeDasharray: "4,4"
+      });
+
+      thresholdMark = Plot.dot([{ x: x0Clamped }], {
+        x: "x",
+        y: 0.5,
+        fill: "black",
+        r: 5
+      });
+
+      titleText = `Decision boundary at x₀ = ${x0.toFixed(2)}`;
+    }
+
+    const title = html`<div style="
+      text-align:center;
+      font-size:0.95rem;
+      margin-bottom:6px;
+    ">${titleText}</div>`;
+
+    const plot = Plot.plot({
+      width: 640,
+      height: 380,
+      x: { label: "x", domain: [xMin, xMax] },
+      y: { label: "activation(wx + b)", domain: [-0.05, 1.05] },
+      style: { background: "white" },
+      marks: [
+        Plot.rect([{}], {
+          x1: xMin,
+          x2: invalid ? xMax : x0Clamped,
+          y1: 0,
+          y2: 1,
+          fill: leftColor
+        }),
+        !invalid && Plot.rect([{}], {
+          x1: x0Clamped,
+          x2: xMax,
+          y1: 0,
+          y2: 1,
+          fill: rightColor
+        }),
+        invalid && Plot.rect(
+          [{
+            x1: -boxWidth / 2,
+            x2: boxWidth / 2,
+            y1: 0.28,
+            y2: 0.78
+          }],
+          {
+            x1: "x1",
+            x2: "x2",
+            y1: "y1",
+            y2: "y2",
+            fill: "white",
+            fillOpacity: 0.9,
+            stroke: "black",
+            strokeWidth: 1
+          }
+        ),
+        Plot.line(curveData, {
+          x: "x",
+          y: "y",
+          stroke: "black",
+          strokeWidth: 3
+        }),
+        boundaryMark,
+        thresholdMark,
+        Plot.dot(axisData, {
+          x: "x",
+          y: 0,
+          fill: d => d.pred === 1 ? "#bae4b3" : "#9ecae1",
+          r: 2.5
+        }),
+        invalid && Plot.text(
+          [{
+            x: 0,
+            y: 0.53,
+            label: "No decision boundary :)\nThis is because w = 0\n\nTherefore, we choose based only on b\nIf b >= 0, choose 1, otherwise 0."
+          }],
+          {
+            x: "x",
+            y: "y",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 14,
+            fill: "black"
+          }
+        )
+      ].filter(Boolean)
+    });
+
+    plotHost.replaceChildren(
+      html`<div style="display:flex; flex-direction:column; align-items:center;"></div>`
+    );
+
+    plotHost.firstChild.append(title, plot);
+  }
+
+  w.addEventListener("input", render);
+  b.addEventListener("input", render);
+  render();
+
+  const row = html`<div style="
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 1rem 0;
+  "></div>`;
+
+  row.append(controls, plotHost);
+
+  return row;
 }
 ```
