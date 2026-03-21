@@ -52,19 +52,19 @@
 
     let curveData, axisData, leftColor, rightColor, boundaryMark, thresholdMark, titleText;
 
-    if (invalid) {
-      const pred = activation(bv);
+if (invalid) {
+  const pred = activation(bv);
 
-      curveData = xs.map(xi => ({ x: xi, y: pred }));
-      axisData  = xs.map(xi => ({ x: xi, pred }));
+  curveData = null;
+  axisData  = xs.map(xi => ({ x: xi, pred }));
 
-      leftColor = pred === 1 ? c1 : c0;
-      rightColor = leftColor;
+  leftColor = pred === 1 ? c1 : c0;
+  rightColor = leftColor;
 
-      boundaryMark = null;
-      thresholdMark = null;
-      titleText = `No decision boundary`;
-    } else {
+  boundaryMark = null;
+  thresholdMark = null;
+  titleText = `No decision boundary`;
+} else {
       curveData = xs.map(xi => ({ x: xi, y: activation(wv * xi + bv) }));
       axisData  = xs.map(xi => ({ x: xi, pred: activation(wv * xi + bv) }));
 
@@ -131,14 +131,14 @@
             strokeWidth: 1
           }
         ),
-        Plot.line(curveData, {
+        !invalid && Plot.line(curveData, {
           x: "x",
           y: "y",
           stroke: "black",
           strokeWidth: 3
         }),
         boundaryMark,
-        thresholdMark,
+        //thresholdMark,
         Plot.dot(axisData, {
           x: "x",
           y: 0,

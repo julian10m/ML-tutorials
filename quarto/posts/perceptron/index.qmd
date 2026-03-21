@@ -9,7 +9,7 @@ The perceptron is a classification algorithm, so given an input $x$, we want to 
 In particular, it is a supervised model, meaning that we will have a labelled training set, where we know the true value $y$ for each sample.
 
 In general, we can choose how to represent $y$.
-For binary classification problems, some typical choices include $\{0, 1\}$ and ${-1, 1\}$.
+For binary classification problems, some typical choices include $\{0, 1\}$ and $\{-1, 1\}$.
 Using one or the other does not affect the generality of the conclusions.
 We will alternate between both, selecting the representation that leads to the easiest interpretation in each section.
 
