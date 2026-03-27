@@ -33,7 +33,8 @@ format:
               Var: "\\mathrm{Var}",
               argmin: "\\operatorname*{arg\\,min}",
               activation: "\\sigma",
-              loss: "\\mathcal{L}"
+              lossall: "L",
+              loss: "\\mathcal{L}",
             }
           }
         };

@@ -1,0 +1,58 @@
+```{ojs}
+//| echo: false
+{
+  const z = d3.range(-5, 5, 0.05);
+
+  const hinge = (z, y) => Math.max(0, -y * z);
+
+  const dataPos = z.map(d => ({ z: d, val: hinge(d, 1) }));
+  const dataNeg = z.map(d => ({ z: d, val: hinge(d, -1) }));
+
+  const plot = Plot.plot({
+    width: 500,
+    height: 300,
+    x: { label: "z" },
+    y: { label: "max(0, -y z)" },
+    marks: [
+      Plot.line(dataPos, { x: "z", y: "val", stroke: "steelblue" }),
+      Plot.line(dataNeg, { x: "z", y: "val", stroke: "tomato" }),
+      Plot.ruleX([0], { strokeDasharray: "4,4" }),
+      Plot.ruleY([0])
+    ]
+  });
+
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.justifyContent = "center";
+  wrapper.style.position = "relative";
+  wrapper.style.margin = "1rem 0";
+
+  const legend = document.createElement("div");
+  legend.innerHTML = `
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div style="width:14px; height:3px; background:steelblue;"></div>
+      <span>y = 1</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div style="width:14px; height:3px; background:tomato;"></div>
+      <span>y = -1</span>
+    </div>
+  `;
+
+  legend.style.cssText = `
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: white;
+    border: 1px solid black;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+  `;
+
+  wrapper.appendChild(plot);
+  wrapper.appendChild(legend);
+
+  return wrapper;
+}
+```

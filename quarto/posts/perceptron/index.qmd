@@ -5,6 +5,11 @@ author: "Julian M. Del Fiore"
 categories: [classification]
 ---
 
+```{ojs}
+//| echo: false
+activation = z => z >= 0 ? 1 : 0;
+```
+
 The perceptron is a classification algorithm, so given an input $x$, we want to produce a label $\hat{y}$.
 In particular, it is a supervised model, meaning that we will have a labelled training set, where we know the true value $y$ for each sample.
 
@@ -28,22 +33,22 @@ Next we dive into each of these steps.
 ### Linear transformation
 
 As we get a sample as input, the value of the features $x$ represent the "concrete knowledge" we have about this example.
+Ultimately, we hope that this knowledge will allow us to classify $x$ correctly.
 
-We want to combine the information we have about $x$ in a meaningful way.
-Ultimately, we hope that this will allow us to classify $x$ correctly.
+The question is how we want to combine all this information we have of $x$ in a meaningful way.
+In particuar, we would love to synthesise all the knowledge we have about $x$ into a unique measure.
 
-To synthesise all the knowledge we have about $x$ into a unique measure, similar to what is done in many other models, the perceptron uses a linear transformation
+Similar to what is done in many other models, the perceptron uses a linear transformation for that
 
 $$z = wx + b$$
 
 where
 
  * $x$ is the input, and;
- * $w$ and $b$ are the weight and bias of the model, respectively.
+ * $w$ and $b$ are parameters of the model, the weight and bias respectively.
 
-The union of $w$ and $b$ are the parameters of the model.
-
-Relying on this linear transformation, the input space $x$ gets projected onto a one-dimensional space defined by $z$.
+With this linear transformation, $x$ could be of any size, but $z$ is always just a plain number.
+From a mathematical point of view, the trasformation we apply projects the input space $x$ onto a one-dimensional space defined by $z$.
 
 ### Activation function
 
@@ -53,7 +58,6 @@ With the linear transformation, we condense the knowledge of $x$ into $z$.
 But as this happens, we now need a way of understanding what $z$ is trying to tell us.
 
 To complete that piece of the puzzle, the $z$-value is sent through an activation function $\activation(z)$.
-
 In the case of the perceptron, the $\sgn(z)$ or _step_ function show in @fig-sign is used
 
 $$
@@ -77,7 +81,7 @@ $$\hat{y} = \sgn(z) = \activation(z) =
 1 & \text{if } z \ge 0 \\
 0 & \text{otherwise}
 \end{cases}
-$$
+$$ {#eq-dec-z}
 
 We typically place a decision threshold in some value $z = z_0$.
 This threshold divides the real line into two regions, each corresponding to a predicted class.
@@ -89,27 +93,24 @@ This can be seen in @fig-decision-region.
 
 ### Decision regions and boundary
 
-The decision threshold in the transformed $z$-space corresponds to a geometric boundary in the input $x$-space.
-In particular, the boundary lies in
-
-$$z_0 = 0 \Leftrightarrow w x_0 + b = 0 \Leftrightarrow$$
-
-and this also determines the decision regions
+The @eq-dec-z can be re-written in terms of $x$ as 
 
 $$\hat{y} =
 \begin{cases}
-1 & \text{if } w x_0 + b \ge 0 \\
+1 & \text{if } w x + b \ge 0 \\
 0 & \text{otherwise}
 \end{cases}
 $$
 
-Focusing on $x \in \mathbb{R}$ for now, we can find $x_0$ directly as $x_0 = -\frac{b}{w}$.
-The animation in @fig-decision-boundary-1d allows to see how the position of $x_0$ changes depending on the values assigned to $w$ and $b$.
+We can see that the decision threshold in $z = 0$ corresponds to a geometric boundary in the input $x$-space
 
-```{ojs}
-//| echo: false
-activation = z => z >= 0 ? 1 : 0;
-```
+$$z_0 = 0 \Leftrightarrow w x_0 + b = 0$$
+
+The formula $w x_0 + b = 0$ defines what we typically call an hyperplane.
+Focusing on $x \in \mathbb{R}$ for now, we can find $x_0$ directly as $x_0 = -\frac{b}{w}$.
+
+In @fig-decision-boundary-1d, we can choose $w$ and $b$, and the animation displays where $x_0$ would lie for the given combination.
+
 ::: {#fig-decision-boundary-1d}
 {{< include ../_shared/decision-plot_1d.qmd >}}
 Decision boundary — adjust $w$ and $b$ to explore different configurations.
@@ -117,58 +118,188 @@ Decision boundary — adjust $w$ and $b$ to explore different configurations.
 
 ## Training
 
-Recall that this is a supervised algorithm.
+The perceptron is a supervised algorithm.
 This means that during training, we need to have labeled samples.
 Assuming that's the case, for any training example $x$, we know the true label $y$.
 
 For each example we run through our classifier, we get a prediction $\hat{y}$.
-Since we get the true labels, we are able to compare $\hat{y}$ against the expected $y$.
+Since we know the true labels, we are able to compare $\hat{y}$ against the expected $y$.
 The more times $\hat{y} = y$, the better our model is performing.
 
 The training is the phase in which we refine the predictions $\hat{y}$ that our classifier makes.
-For that to be possible, we need to update the parameters $w$ and $b$
-The hope is that, iterating, we will learn good values for $w$ and $b$, so that our predictions $\hat{y}$ are mostly correct.
+For that to be possible, we need to update the parameters $w$ and $b$.
 
+The hope is that, iterating through the training set, we will learn good values for $w$ and $b$, so that our predictions $\hat{y}$ are mostly correct.
 
-To refine the values of $w$ and $b$, we need to define a loss function.
+To refine the values of $w$ and $b$, we need a strategy to know how to proceed.
+The way this typically goes is that define a a loss function, and try to minimise it. 
 
 ### Loss function
 
-To know how to optimise the values of $w$ and $b$, we need to define a loss function $\loss$.
-Without losing generality, and becauae the formulas look better like this, we will assume $\hat{y} \in \{-1, 1\}$ in this sub-section.
+We want our model to make the best predictions on average.
+By "on average", we mean that, given many samples, we would love most of our predictions to be right.
 
+To express this desire in a mathematical form, we can create a function. 
+The value our function takes would depend how close our predictions were to the true labels we were trying to predict. 
+
+There are two options for our function:
+
+* we could measure the goodness of fit, i.e. quantify how well our model predicts each sample, and aim to to maximise the value of that function, or;
+* we could calculate the mismatch between our predictions and their expected values, and attempt to minimise this difference. 
+
+In ML we typically model problems in the latter way, and talk about a _loss_ or _cost_ function.
+The problem now becomes an optimisation one, where we want to minimise the cost function. 
+How do we do that? Tuning the parameters of our model, namely $w$ and $b$.
+
+Assuming $\hat{y} \in \{-1, 1\}$ in the following (no loss of generality, just nicer formulas), the loss function used in the perceptron is
+
+$$\loss = \max(0, -yz)$$
+
+which we plot in @fig-loss
+
+::: {#fig-loss}
+{{< include ../_shared/loss-perceptron.qmd >}}
+Plot of the loss function $\loss = \max(0, -yz)$
+:::
+
+### Interpreting the loss function
+
+In essence, function $\max(0, -yz)$ is mainly looking at whether $z$ has the correct sign, i.e. whether $y$ and $z$ are both simultaneously either positive or negative.
+
+Recall that the classification criteria is such that for $z \ge 0$ we assign $\hat{y} = 1$.
+With that it mind:
+
+* if $y = 1$, then the classification is correct if $z \ge 0$. 
+* if instead $y = -1$, then the classification is correct if $z < 0$.
+
+Independently of the value of $y$, what is common in both cases is that sign of $y$ and $z$ is always the same when the classification is correct, i.e. it holds that $yz \ge 0$. 
+
+The previous condition is equivalent to saying that $- yz < 0$ whenever our model is right.
+The maximum between this negative number and 0 is 0. 
+Therefore, the cost $\loss$ in these cases is exactly 0.
+
+For mistakes, the analysis is pretty much the same, only that $- yz \ge 0$ and therefore the loss function will be exactly $- yz$.
+
+So overall, $\loss = \max(0, -yz)$ is just a very compact formula that allows to assign no cost for correct classifications, and a cost proportional to how far we are from changing our guess in mistakes.
+
+### Updating the model parameters
+
+To minimise the loss function, we update the model parameters. 
+The question then is how to exactly. 
+
+In the case of the perceptron, the optimisation strategy is to use gradient descent. 
+If our loss function has a global minimum, then we know that as long as we update the parameters in a way that the value of the loss decreases, we are moving in the right direction. 
+
+There could still be many candidate directions in which the value of the loss decreases, so we still need to decide which one to use. 
+To answer that, gradient descent is smart and proposes to move in the direction opposite to the gradient. 
+
+The gradient is the direction of greatest increase, so moving in its opposite direction actually leads to the function's greatest decrease. 
+Hence, this direction is not only optimal in this sense, but also we can systematically compute it using partial derivatives
 
 $$
-\loss =
+\nabla \loss(w,b) =
+\begin{pmatrix}
+\frac{\partial \loss}{\partial w} \\
+\frac{\partial \loss}{\partial b}
+\end{pmatrix}
 $$
+
+The way the optimisation search goes for $w$ and $b$ is that we typically assign them small random values $w_0$ and $b_0$ to begin with, and then update their values at each iteration $i$
+
+$$
+\begin{align}
+w_{i+1} &= w_{i} - \eta \frac{\partial \loss}{\partial w}(w_i, b_i) \\
+b_{i+1} &= b_{i} - \eta \frac{\partial \loss}{\partial b}(w_i, b_i)
+\end{align}
+$$
+
+where $\eta > 0$ is a scaling factor we can also tune, typically known as the _learning rate_ of the algorithm.
+
+For the perceptron, we know $\loss$ and hence we can calculate the gradient
+
+$$
+\nabla \loss(w,b) =
+\begin{pmatrix}
+\frac{\partial \loss}{\partial w} \\
+\frac{\partial \loss}{\partial b}
+\end{pmatrix}
+=
+\begin{cases}
+\begin{pmatrix}
+- yx \\
+- y
+\end{pmatrix}
+& \text{for mistakes} \\
+\\
+\begin{pmatrix}
+0 \\
+0
+\end{pmatrix}
+& \text{otherwise}
+\end{cases}
+$$
+
+And finally 
+
+$$
+\begin{align}
+w_{i+1} &= w_i + \eta yx \cdot \mathbb{1}_{\text{mistake}} \\
+b_{i+1} &= b_i + \eta y \cdot \mathbb{1}_{\text{mistake}}
+\end{align}
+$$
+
+
+## Interpreting the parameter updates
+
+As we update $w$ and $b$ as proposed in the the previous section, the $z$ we assign to each sample $x$ also changes over time. 
+Is there some rationale of how $z$ changes? 
+
+To answer that, we can write 
+
+$$
+\begin{align}
+z_{i+1} &= w_{i+1}x + b_{i+1} \\
+&= (w_i + \eta yx \cdot \mathbb{1}_{\text{mistake}}) x + (b_i + \eta y \cdot \mathbb{1}_{\text{mistake}}) \\ 
+&= w_i x + \eta yx^2 \cdot \mathbb{1}_{\text{mistake}} + b_i + \eta y \cdot \mathbb{1}_{\text{mistake}} \\ 
+&= (w_i x + b_i) + \eta y (1 + x^2) \cdot \mathbb{1}_{\text{mistake}} \\
+&= z_i + \eta y (1 + x^2) \cdot \mathbb{1}_{\text{mistake}}
+\end{align}
+$$
+
+And this allows us to exactly predict how $z$ changes from one iteration to the next
+
+$$
+z_{i + 1} - z_{i} = \eta y (1 + x^2) \cdot \mathbb{1}_{\text{mistake}}
+$$
+
+As we saw before, if there is no mistake, then nothing changes.
+However, for mistakes:
+
+* since $y \in \{-1, 1\}$,  the change in $z$ will always be of magnitude $\eta (1 + x^2)$, and;
+* since $\eta > 0$ and $(1 + x^2) > 0$, $z$ increases or decreases depending only on the sign of $y$ 
+
+This results is extremely interesting, let's focus on mistakes at iteration $i$ when $y = 1$.
+
+If the model is mistaken, it means that $\hat{y} = -1$ which happens when $z_i < 0$.
+Hence, as we update the parameters, we would love to get $z_{i + 1} > z_i$.
+
+If we check the formula again, we can see that the update in $z_i$ will be positive because $y$ is positive.
+The magintude of the change will be $\eta (1 + x^2)$.
+
+For a given sample, $\eta (1 + x^2)$ is a constant, and thus $z$ changes in steps of a fixed size.
+As the iterations pass by, as long as the sample is wrongly classified, the same update occurs on each iteration.
+
+Eventually, at a final iteration $f$, we get $z_f \ge 0$.
+The moment this happens, our prediction changes to $\hat{y} = 1$.
+Since we now classify correctly the sample, then we can stop. 
+
 
 
 
 The idea behind the perceptron is brute-forcing, a mindset of the type "if there is a solution, I will find it".
 
-For an input $x$ of class $y$, the loss function is
 
-
-
-And below some math formulas!
-
-$$
-\begin{aligned}
-y &= ax + b \\
-y' &= a
-\end{aligned}
-$$ {#eq-linear}
-
-See @eq-linear.
-
-$$
-\begin{align}
-y &= ax + b \\
-y' &= a
-\end{align}
-$$
-
-great!
+## Moving to higher order spaces
 
 Finally, n the $z$-space, it always holds that $z$ is a scalar, i.e., $z \in \mathbb{R}$.
 On the contrary, $x$, and thus $w$, could belong to an $n$-dimensional space, i.e. $x, w \in \mathbb{R}^n$.
