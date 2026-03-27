@@ -153,9 +153,16 @@ How do we do that? Tuning the parameters of our model, namely $w$ and $b$.
 
 Assuming $\hat{y} \in \{-1, 1\}$ in the following (no loss of generality, just nicer formulas), the loss function used in the perceptron is
 
-$$\loss = \max(0, -yz)$$
+$$
+\loss = \max(0, -yz) =
+\begin{cases}
+-yz & \text{if } -  yz \ge 0 \\
+0 & \text{otherwise}
+\end{cases}
+$$
 
-which we plot in @fig-loss
+Overall, the loss function has the shape of a function $\max(0, x)$, only that the value of $y$ modulates whether the plot gets flipped or not.
+This is more clearly shown in in @fig-loss.
 
 ::: {#fig-loss}
 {{< include ../_shared/loss-perceptron.qmd >}}
@@ -292,8 +299,6 @@ As the iterations pass by, as long as the sample is wrongly classified, the same
 Eventually, at a final iteration $f$, we get $z_f \ge 0$.
 The moment this happens, our prediction changes to $\hat{y} = 1$.
 Since we now classify correctly the sample, then we can stop. 
-
-
 
 
 The idea behind the perceptron is brute-forcing, a mindset of the type "if there is a solution, I will find it".

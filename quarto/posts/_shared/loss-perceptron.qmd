@@ -1,58 +1,147 @@
 ```{ojs}
 //| echo: false
 {
-  const z = d3.range(-5, 5, 0.05);
+  const yInput = Inputs.radio(
+    [-1, 1],
+    {
+      value: 1,
+      label: null,
+      format: y => `y = ${y}`
+    }
+  );
 
-  const hinge = (z, y) => Math.max(0, -y * z);
+  yInput.style.display = "flex";
+  yInput.style.justifyContent = "center";
+  yInput.style.gap = "12px";
 
-  const dataPos = z.map(d => ({ z: d, val: hinge(d, 1) }));
-  const dataNeg = z.map(d => ({ z: d, val: hinge(d, -1) }));
+  const zInput = Inputs.range(
+    [-5, 5],
+    {
+      value: 0,
+      step: 0.1,
+      label: null
+    }
+  );
 
-  const plot = Plot.plot({
-    width: 500,
-    height: 300,
-    x: { label: "z" },
-    y: { label: "max(0, -y z)" },
-    marks: [
-      Plot.line(dataPos, { x: "z", y: "val", stroke: "steelblue" }),
-      Plot.line(dataNeg, { x: "z", y: "val", stroke: "tomato" }),
-      Plot.ruleX([0], { strokeDasharray: "4,4" }),
-      Plot.ruleY([0])
-    ]
-  });
+  const controls = html`<div style="
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+  "></div>`;
 
-  const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.justifyContent = "center";
-  wrapper.style.position = "relative";
-  wrapper.style.margin = "1rem 0";
+  function compactRow(name, input) {
+    input.style.width = "100%";
+    input.style.margin = "0";
 
-  const legend = document.createElement("div");
-  legend.innerHTML = `
-    <div style="display:flex; align-items:center; gap:6px;">
-      <div style="width:14px; height:3px; background:steelblue;"></div>
-      <span>y = 1</span>
-    </div>
-    <div style="display:flex; align-items:center; gap:6px;">
-      <div style="width:14px; height:3px; background:tomato;"></div>
-      <span>y = -1</span>
-    </div>
-  `;
+    return html`<div style="
+      display: grid;
+      grid-template-columns: 1.2rem 1fr;
+      align-items: center;
+      column-gap: 0.5rem;
+    ">
+      <span>${name}</span>
+      ${input}
+    </div>`;
+  }
 
-  legend.style.cssText = `
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: white;
-    border: 1px solid black;
-    border-radius: 4px;
-    padding: 6px 8px;
-    font-size: 12px;
-  `;
+  controls.append(
+    yInput,
+    compactRow("z", zInput)
+  );
 
-  wrapper.appendChild(plot);
-  wrapper.appendChild(legend);
+  const plotHost = html`<div></div>`;
 
-  return wrapper;
+  function render() {
+    const y = Number(yInput.value);
+    const zSelected = Number(zInput.value);
+
+    const z = d3.range(-5, 5.05, 0.05);
+    const hinge = (z, y) => Math.max(0, -y * z);
+
+    const data = z.map(d => ({ z: d, val: hinge(d, y) }));
+    const lossAtZ = hinge(zSelected, y);
+
+    const color = y === 1 ? "steelblue" : "tomato";
+
+    const plot = Plot.plot({
+      width: 500,
+      height: 300,
+      x: { label: "z", domain: [-5, 5] },
+      y: { label:`max(0, -y z) = ${y === 1 ? "max(0, -z)" : "max(0, z)"}`, domain: [-0.1, 5.2] },
+      marks: [
+        Plot.line(data, {
+          x: "z",
+          y: "val",
+          stroke: color,
+          strokeWidth: 3
+        }),
+        Plot.ruleX([0], { strokeDasharray: "4,4" }),
+        Plot.ruleY([0]),
+        Plot.ruleX([zSelected], {
+          stroke: "black",
+          strokeDasharray: "2,2",
+          strokeOpacity: 0.7
+        }),
+        Plot.dot(
+          [{ z: zSelected, val: lossAtZ }],
+          {
+            x: "z",
+            y: "val",
+            fill: color,
+            stroke: "black",
+            r: 5
+          }
+        )
+      ]
+    });
+
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.position = "relative";
+    wrapper.style.margin = "1rem 0";
+
+    const info = document.createElement("div");
+    info.innerHTML = `
+      <div><strong>y</strong> = ${y}</div>
+      <div><strong>z</strong> = ${zSelected.toFixed(1)}</div>
+      <div><strong>loss</strong> = ${lossAtZ.toFixed(2)}</div>
+    `;
+
+    info.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid black;
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 12px;
+      text-align: center;
+      opacity: 0.95;
+    `;
+
+    wrapper.appendChild(plot);
+    wrapper.appendChild(info);
+
+    plotHost.replaceChildren(wrapper);
+  }
+
+  yInput.addEventListener("input", render);
+  zInput.addEventListener("input", render);
+  render();
+
+  const row = html`<div style="
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 1rem 0;
+  "></div>`;
+
+  row.append(controls, plotHost);
+  return row;
 }
 ```
