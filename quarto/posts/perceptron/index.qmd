@@ -2,6 +2,7 @@
 title: "The Perceptron"
 date: "2026-03-14"
 author: "Julian M. Del Fiore"
+draft: true
 categories: [classification]
 ---
 
