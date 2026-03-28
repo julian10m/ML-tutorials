@@ -1,8 +1,9 @@
 name: Quarto Publish
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "0 12 * * *"
+      timezone: "Europe/Madrid"
   workflow_dispatch:
 
 permissions:
