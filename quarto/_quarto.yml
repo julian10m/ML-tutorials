@@ -9,6 +9,7 @@ website:
   description: "A blog built with Quarto"
   site-url: https://github.com/julian10m/ML-tutorials
   title: "ML-Tutorials"
+  draft-mode: unlinked
   navbar:
     right:
       - about.qmd
