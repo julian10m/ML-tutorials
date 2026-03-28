@@ -256,8 +256,13 @@ b_{i+1} &= b_i + \eta y \cdot \mathbb{1}_{\text{mistake}}
 \end{align}
 $$
 
+::: {#fig-updates-1d}
+{{< include ../_shared/updates-1d.qmd >}}
+Decision boundary — adjust $w$ and $b$ to explore different configurations.
+:::
 
-## Interpreting the parameter updates
+
+### Interpreting the parameter updates
 
 As we update $w$ and $b$ as proposed in the the previous section, the $z$ we assign to each sample $x$ also changes over time. 
 Is there some rationale of how $z$ changes? 

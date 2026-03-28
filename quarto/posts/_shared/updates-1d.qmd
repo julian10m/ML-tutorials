@@ -1,0 +1,500 @@
+```{ojs}
+//| echo: false
+{
+  const EPS = 1e-12;
+  const activation = z => z >= -EPS ? 1 : -1; 
+  const displayActivation = z => activation(z) === 1 ? 1 : 0;
+
+  const w0 = Inputs.range([-8, 8], { value: 0.5, step: 0.5, label: null });
+  const b0 = Inputs.range([-4.5, 4.5], { value: 0, step: 0.5, label: null });
+  const xSample = Inputs.range([-1, 1], { value: 2, step: 0.5, label: null });
+
+  const ySample = Inputs.radio([-1, 1], {
+    value: 1,
+    label: null,
+    format: d => `y = ${d}`
+  });
+  ySample.style.display = "flex";
+  ySample.style.gap = "12px";
+
+  const etaInput = Inputs.range([0.1, 1], {
+    value: 0.2,
+    step: 0.1,
+    label: null
+  });
+
+  const playBtn = html`<button style="
+    padding: 6px 12px;
+    border: 1px solid #999;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-weight: 500;
+  ">Play</button>`;
+
+  const status = html`<div style="
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+    color: #444;
+    text-align: center;
+  "></div>`;
+
+  const currentParams = html`<div style="
+    font-size: 0.9rem;
+    min-height: 1.2rem;
+    color: #444;
+    text-align: center;
+  "></div>`;
+
+  function compactRow(name, input) {
+    input.style.width = "100%";
+    input.style.margin = "0";
+
+    return html`<div style="
+      display: grid;
+      grid-template-columns: 1.8rem 1fr;
+      align-items: center;
+      column-gap: 0.4rem;
+      min-width: 180px;
+    ">
+      <span>${name}</span>
+      ${input}
+    </div>`;
+  }
+
+  const topControls = html`<div style="
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 16px;
+  "></div>`;
+
+  const playRow = html`<div style="
+    display:flex;
+    justify-content:center;
+    width:100%;
+    margin-top:4px;
+  "></div>`;
+  playRow.append(playBtn);
+
+  topControls.append(
+    compactRow("w₀", w0),
+    compactRow("b₀", b0),
+    compactRow("η", etaInput),
+    compactRow("xₛ", xSample),
+    html`<div style="display:flex; align-items:center; gap:8px;"><span>target</span>${ySample}</div>`,
+    playRow
+  ); 
+
+  const leftHost = html`<div></div>`;
+  const rightHost = html`<div></div>`;
+
+  let animationToken = 0;
+  let currentState = null;
+  let isTraining = false;
+  let isTrained = false;
+
+  function setButtonMode(mode, info = "") {
+    if (mode === "play") {
+      playBtn.textContent = "Play";
+    } else if (mode === "training") {
+      playBtn.textContent = info ? `Training · ${info}` : "Training";
+    } else if (mode === "reset") {
+      playBtn.textContent = "Reset";
+    }
+  }
+
+  function computePath(wInit, bInit, xs, y, eta, maxSteps = 100) {
+    const path = [{ w: wInit, b: bInit }];
+
+    let wc = wInit;
+    let bc = bInit;
+
+    for (let k = 0; k < maxSteps; k++) {
+      const pred = activation(wc * xs + bc);
+      if (pred === y) break;
+
+      wc = wc + eta * y * xs;
+      bc = bc + eta * y;
+      path.push({ w: wc, b: bc });
+    }
+
+    return path;
+  }
+
+  function getInitialState() {
+    return {
+      w: Number(w0.value),
+      b: Number(b0.value)
+    };
+  }
+
+  function render(state = null, stepInfo = "", history = []) {
+    currentState = state ?? getInitialState();
+
+    const wv = currentState.w;
+    const bv = currentState.b;
+
+    const xsVal = Number(xSample.value);
+    const ysVal = Number(ySample.value);
+    const eta = Number(etaInput.value);
+
+    const xMin = -5, xMax = 5;
+    const xs = d3.range(xMin, xMax, 0.05);
+
+    const invalid = wv === 0;
+    const x0 = invalid ? null : -bv / wv;
+    const x0Clamped = invalid ? null : Math.max(xMin, Math.min(x0, xMax));
+
+    const zSample = wv * xsVal + bv;
+    const predSample = activation(zSample);
+    const sampleCorrect = predSample === ysVal;
+
+    const boxWidth = (xMax - xMin) * 0.55;
+
+    const c1 = "rgba(186, 228, 179, 0.2)";
+    const c0 = "rgba(158, 202, 225, 0.2)";
+    const sampleColor = ysVal === 1 ? "#2ca02c" : "#1f77b4";
+
+    const zHistory = history.map((s, i) => ({
+      z: s.w * xsVal + s.b,
+      y: 0,
+      step: i
+    }));
+
+    let curveData, axisData, leftColor, rightColor, boundaryMark, titleText;
+
+    if (invalid) {
+      const pred = displayActivation(bv);
+
+      curveData = null;
+      axisData = xs.map(xi => ({ x: xi, pred }));
+
+      leftColor = pred === 1 ? c1 : c0;
+      rightColor = leftColor;
+
+      boundaryMark = null;
+      titleText = `No decision boundary`;
+    } else {
+      curveData = xs.map(xi => ({ x: xi, y: displayActivation(wv * xi + bv) }));
+      axisData = xs.map(xi => ({ x: xi, pred: displayActivation(wv * xi + bv) }));
+
+      leftColor = displayActivation(wv * xMin + bv) === 1 ? c1 : c0;
+      rightColor = displayActivation(wv * xMax + bv) === 1 ? c1 : c0;
+
+      boundaryMark = Plot.ruleX([x0Clamped], {
+        stroke: "black",
+        strokeDasharray: "4,4"
+      });
+
+      titleText = `Decision boundary at x₀ = ${x0.toFixed(2)}`;
+    }
+
+    currentParams.textContent = isTrained
+      ? `Trained parameters: w = ${wv.toFixed(2)}, b = ${bv.toFixed(2)}`
+      : `Current parameters: w = ${wv.toFixed(2)}, b = ${bv.toFixed(2)}`;
+
+    const xTitle = html`<div style="
+      text-align:center;
+      font-size:0.95rem;
+      margin-bottom:6px;
+    ">
+      x-space
+    </div>`;
+
+    const xPlot = Plot.plot({
+      width: 560,
+      height: 330,
+      x: { label: "x", domain: [xMin, xMax] },
+      y: { label: "activation(wx + b)", domain: [-0.05, 1.05] },
+      style: { background: "white" },
+      marks: [
+        Plot.rect([{}], {
+          x1: xMin,
+          x2: invalid ? xMax : x0Clamped,
+          y1: 0,
+          y2: 1,
+          fill: leftColor
+        }),
+        !invalid && Plot.rect([{}], {
+          x1: x0Clamped,
+          x2: xMax,
+          y1: 0,
+          y2: 1,
+          fill: rightColor
+        }),
+        invalid && Plot.rect(
+          [{
+            x1: -boxWidth / 2,
+            x2: boxWidth / 2,
+            y1: 0.28,
+            y2: 0.78
+          }],
+          {
+            x1: "x1",
+            x2: "x2",
+            y1: "y1",
+            y2: "y2",
+            fill: "white",
+            fillOpacity: 0.9,
+            stroke: "black",
+            strokeWidth: 1
+          }
+        ),
+        !invalid && Plot.line(curveData, {
+          x: "x",
+          y: "y",
+          stroke: "black",
+          strokeWidth: 3
+        }),
+        boundaryMark,
+        Plot.dot(axisData, {
+          x: "x",
+          y: 0,
+          fill: d => d.pred === 1 ? "#bae4b3" : "#9ecae1",
+          r: 2.5
+        }),
+        Plot.dot(
+          [{ x: xsVal, y: 0 }],
+          {
+            x: "x",
+            y: "y",
+            fill: sampleColor,
+            stroke: "black",
+            strokeWidth: 3,
+            r: 9
+          }
+        ),
+        Plot.text(
+          [{ x: xsVal, y: 0.12, label: `y=${ysVal}` }],
+          {
+            x: "x",
+            y: "y",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 12
+          }
+        ),
+        invalid && Plot.text(
+          [{
+            x: 0,
+            y: 0.53,
+            label: "No decision boundary :)\nThis is because w = 0\n\nTherefore, we choose based only on b\nIf b >= 0, choose 1, otherwise -1."
+          }],
+          {
+            x: "x",
+            y: "y",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 14,
+            fill: "black"
+          }
+        )
+      ].filter(Boolean)
+    });
+
+    const zMin = -12, zMax = 12;
+    const zTitle = html`<div style="
+      text-align:center;
+      font-size:0.95rem;
+      margin-bottom:6px;
+    ">
+      z-space
+    </div>`;
+
+    const zPlot = Plot.plot({
+      width: 560,
+      height: 330,
+      x: { label: "z = wx + b", domain: [zMin, zMax] },
+      y: { domain: [-0.05, 1.05], axis: null },
+      style: { background: "white" },
+      marks: [
+        Plot.rect([{}], {
+          x1: zMin,
+          x2: 0,
+          y1: 0,
+          y2: 1,
+          fill: c0
+        }),
+        Plot.rect([{}], {
+          x1: 0,
+          x2: zMax,
+          y1: 0,
+          y2: 1,
+          fill: c1
+        }),
+        Plot.ruleX([0], {
+          stroke: "black",
+          strokeDasharray: "4,4"
+        }),
+        history.length > 1 && Plot.dot(
+          zHistory.slice(0, -1),
+          {
+            x: "z",
+            y: "y",
+            fill: sampleColor,
+            fillOpacity: 0.25,
+            stroke: "none",
+            r: 5
+          }
+        ),
+        history.length > 1 && Plot.line(
+          zHistory,
+          {
+            x: "z",
+            y: "y",
+            stroke: sampleColor,
+            strokeOpacity: 0.35,
+            strokeDasharray: "3,3"
+          }
+        ),
+        Plot.dot(
+          [{ z: zSample, y: 0 }],
+          {
+            x: "z",
+            y: "y",
+            fill: sampleColor,
+            stroke: "black",
+            strokeWidth: 3,
+            r: 10
+          }
+        ),
+        Plot.text(
+          [{ z: zSample, y: 0.12, label: `z=${zSample.toFixed(2)}` }],
+          {
+            x: "z",
+            y: "y",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 12
+          }
+        ),
+        Plot.text(
+          [{ z: -6, y: 0.92, label: "ŷ = -1" }, { z: 6, y: 0.92, label: "ŷ = 1" }],
+          {
+            x: "z",
+            y: "y",
+            text: "label",
+            textAnchor: "middle",
+            fontSize: 12
+          }
+        )
+      ].filter(Boolean)
+    });
+
+    leftHost.replaceChildren(
+      html`<div style="display:flex; flex-direction:column; align-items:center;"></div>`
+    );
+    leftHost.firstChild.append(zTitle, zPlot);
+
+    rightHost.replaceChildren(
+      html`<div style="display:flex; flex-direction:column; align-items:center;"></div>`
+    );
+    rightHost.firstChild.append(xTitle, xPlot);
+
+    status.textContent = sampleCorrect
+      ? "Sample is correctly classified."
+      : `Sample is misclassified.`;
+  }
+
+  async function train() {
+    animationToken += 1;
+    const token = animationToken;
+
+    isTraining = true;
+    isTrained = false;
+    setButtonMode("training");
+
+    const init = getInitialState();
+
+    const path = computePath(
+      init.w,
+      init.b,
+      Number(xSample.value),
+      Number(ySample.value),
+      Number(etaInput.value)
+    );
+
+    if (path.length === 1) {
+      isTraining = false;
+      isTrained = false;
+      setButtonMode("play");
+      render(path[0], "already classified", path);
+      return;
+    }
+
+    for (let i = 0; i < path.length; i++) {
+      if (token !== animationToken) return;
+      currentState = path[i];
+      setButtonMode("training", `step ${i}/${path.length - 1}`);
+      render(currentState, "", path.slice(0, i + 1));
+      await new Promise(resolve => setTimeout(resolve, 700));
+    }
+
+    isTraining = false;
+    isTrained = true;
+    setButtonMode("reset");
+    status.textContent = "Converged for this single sample.";
+    render(currentState, "", path);
+  }
+
+  function resetToInitial() {
+    animationToken += 1;
+    currentState = null;
+    isTraining = false;
+    isTrained = false;
+    setButtonMode("play");
+    render();
+  }
+
+  function rerenderFromControls() {
+    animationToken += 1;
+    currentState = null;
+    isTraining = false;
+    isTrained = false;
+    setButtonMode("play");
+    render();
+  }
+
+  w0.addEventListener("input", rerenderFromControls);
+  b0.addEventListener("input", rerenderFromControls);
+  xSample.addEventListener("input", rerenderFromControls);
+  ySample.addEventListener("input", rerenderFromControls);
+  etaInput.addEventListener("input", rerenderFromControls);
+
+  playBtn.addEventListener("click", () => {
+    if (isTraining) return;
+    if (isTrained) {
+      resetToInitial();
+    } else {
+      train();
+    }
+  });
+
+  setButtonMode("play");
+  render();
+
+  const plotsRow = html`<div style="
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: nowrap;
+  "></div>`;
+
+  plotsRow.append(leftHost, rightHost);
+
+  const wrapper = html`<div style="
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 1rem 0;
+  "></div>`;
+
+  wrapper.append(topControls, status, currentParams, plotsRow);
+
+  return wrapper;
+}
+```
